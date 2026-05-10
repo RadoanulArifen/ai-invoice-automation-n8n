@@ -1,2 +1,3 @@
-# ai-invoice-automation-n8n
-AI Powered Invoice &amp; Accounting Automation System  Tech Stack: n8n, Gemini AI, Gmail API, Google Drive API, Notion API
+# Workflow Architecture
+
+![Workflow](screenshots/Screenshot%20From%202026-05-11%2000-16-26.png)
