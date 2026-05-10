@@ -1,0 +1,653 @@
+{
+  "name": "Ai Powered Invoice & Accounting Automation System",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "=everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "q": "has:attachment filename:pdf"
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -464,
+        -64
+      ],
+      "id": "b2b1c796-12ce-4de5-b781-ad2ee554505f",
+      "name": "Search Invoices",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "XMgc85wPm0lAPU8z",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a71774d3-39a1-48ee-b165-dcce74db0fd1",
+              "name": "attachments",
+              "value": "={{ $('Search Invoices').item.binary.keys() }}",
+              "type": "array"
+            },
+            {
+              "id": "f251bc1e-bb55-4181-a4ce-18eb1dc3ef4f",
+              "name": "message_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -224,
+        -208
+      ],
+      "id": "80f66237-ee98-4a1d-a1a6-7bc562b22a4a",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "attachments",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -208
+      ],
+      "id": "ff3b5616-202a-4ae9-b870-2d0e9f860de0",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "message_id",
+              "field2": "id"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        192,
+        -80
+      ],
+      "id": "c458505d-f7ea-4ca1-959e-2c3a45b064c2",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "={{ $json.attachments }}",
+        "name": "={{ $('Search Invoices').item.json.subject }}_{{ $json.attachments }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1v7xaTV9NMpdd2kZdM9rZ20FnZkkzJ6Z9",
+          "mode": "list",
+          "cachedResultName": "Ai Powered Invoice & Accounting Automation System",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1v7xaTV9NMpdd2kZdM9rZ20FnZkkzJ6Z9"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        400,
+        -80
+      ],
+      "id": "284e58a1-3a96-454c-b938-33c2598e07a4",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "qBGzDZNBTlIwsTxm",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        608,
+        -80
+      ],
+      "id": "e1041545-1542-4eae-9260-f18fc999c98d",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "qBGzDZNBTlIwsTxm",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        816,
+        -80
+      ],
+      "id": "75024c5d-6cc1-4e28-bc89-999b12822f8c",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Based on the text decide if the text is about an invoice or not: {{ $json.text }}\n\nIf yes return \"yes\", if no return \"no\". Don't provide any additional information. Use only small letters",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1024,
+        -80
+      ],
+      "id": "a2f287b8-39b4-4490-b39c-ef0783053215",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        128
+      ],
+      "id": "c7f53d42-6ea9-4390-9462-33390fb534af",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "aVUr49XXJbm9i2Xs",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"status\": \"\"\n\t\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1168,
+        128
+      ],
+      "id": "54a79be4-2d79-4c3c-b00c-5acbfe99c93a",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2df9eaaa-f6b3-46b0-a60e-97f25b6e6c83",
+              "leftValue": "={{ $json.output.status }}",
+              "rightValue": "yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1376,
+        -80
+      ],
+      "id": "692fee3e-0fd8-4aff-b3b8-aea98915d793",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Upload file').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1552,
+        192
+      ],
+      "id": "99eb13f9-fb3a-4d09-8a69-e94b9c48ef07",
+      "name": "Delete a file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "qBGzDZNBTlIwsTxm",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=#role\n\nYou will receive raw text extracted from PDF invoices. Your task is to accurately extract the key invoice details listed below and return them in a clean, well-structured JSON object.\n\nData to Extract\n\ninvoice_name — the invoice title or identifier\n\ncompany_name — the business that issued the invoice\n\ntotal_invoice_amount — the grand total shown on the invoice\n\nline_items — an array of objects, each containing:\n\ndescription — the item/service label\n\namount — the corresponding cost\n\n{\n  \"invoice_name\": \"INV-2025-7789\",\n  \"company_name\": \"Brightline Solutions Ltd.\",\n  \"total_invoice_amount\": 1549.75,\n  \"line_items\": [\n    {\n      \"description\": \"Website development\",\n      \"amount\": 1200\n    },\n    {\n      \"description\": \"Monthly hosting\",\n      \"amount\": 199.75\n    },\n    {\n      \"description\": \"Maintenance fee\",\n      \"amount\": 150\n    }\n  ]\n}\n\n\n\n\nRules\n\n• If any field is missing or unclear, make a reasonable assumption or return null.\n\n• Always use the most specific description available for each line item.\n\n• Validate that line-item totals align with the invoice total (small rounding differences are acceptable).\n\nInput\n\nText: {{ $('Extract from File').item.json.text }}",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1728,
+        -176
+      ],
+      "id": "92e8afd7-5b83-4960-9cf8-6cf38cc8fad3",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"invoice_name\": \"INV-2025-7789\",\n  \"company_name\": \"Brightline Solutions Ltd.\",\n  \"total_invoice_amount\": 1549.75,\n  \"line_items\": [\n    {\n      \"description\": \"Website development\",\n      \"amount\": 1200\n    },\n    {\n      \"description\": \"Monthly hosting\",\n      \"amount\": 199.75\n    },\n    {\n      \"description\": \"Maintenance fee\",\n      \"amount\": 150\n    }\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1904,
+        32
+      ],
+      "id": "2e38cd0f-d28d-4b9a-b9d6-bdc201632313",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1584,
+        32
+      ],
+      "id": "ebdfb16f-a8de-4916-a764-c0ca174677e0",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "aVUr49XXJbm9i2Xs",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "02462e8f-328e-4abb-a64f-5855ec5c08ff",
+              "name": "line_items",
+              "value": "={{ $json.output.line_items }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2080,
+        -176
+      ],
+      "id": "9dd42b6d-0138-4865-a29a-a394e1473c07",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "35c2dca6-b317-8082-bc57-d0065e7c8271",
+          "mode": "list",
+          "cachedResultName": "Ai Powered Invoice & Accounting Automation System DB",
+          "cachedResultUrl": "https://www.notion.so/35c2dca6b3178082bc57d0065e7c8271"
+        },
+        "title": "={{ $('Search Invoices').item.json.headers.subject }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Company Name|title",
+              "title": "={{ $('AI Agent').item.json.output.company_name }}"
+            },
+            {
+              "key": "Description|rich_text",
+              "textContent": "={{ $('AI Agent').item.json.output.line_items[0].description }}"
+            },
+            {
+              "key": "Amount|number",
+              "numberValue": "={{ $('AI Agent').item.json.output.total_invoice_amount }}"
+            },
+            {
+              "key": "Email|email",
+              "emailValue": "={{ $('Search Invoices').item.json.to.value[0].address }}"
+            },
+            {
+              "key": "Additional Fee|number",
+              "numberValue": "={{ Number($json.line_items?.[2]?.amount || 0) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        2288,
+        -176
+      ],
+      "id": "788c4eea-a7ed-491a-a7c3-fafb6747b4fe",
+      "name": "Create a database page",
+      "credentials": {
+        "notionApi": {
+          "id": "8U1snWQbnQWqTUzP",
+          "name": "Ai Powered Invoice & Accounting Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Search Invoices').item.json.to.value[0].address }}",
+        "subject": "=Your Last Invoice Information ",
+        "message": "=```html\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>Invoice Report</title>\n</head>\n\n<body style=\"margin:0; padding:0; background-color:#f4f4f4; font-family:Arial, sans-serif;\">\n\n  <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">\n    <tr>\n      <td align=\"center\" style=\"padding:40px 20px;\">\n\n        <table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" \n          style=\"background:#ffffff; border-radius:12px; overflow:hidden;\">\n\n          <!-- Header -->\n          <tr>\n            <td align=\"center\" \n              style=\"background:#111827; padding:30px;\">\n              <h1 style=\"color:#ffffff; margin:0; font-size:28px;\">\n                Invoice Report\n              </h1>\n            </td>\n          </tr>\n\n          <!-- Content -->\n          <tr>\n            <td style=\"padding:40px; color:#333333;\">\n\n              <p style=\"font-size:16px;\">\n                Hello,\n              </p>\n\n              <p style=\"font-size:16px; line-height:1.7;\">\n                Your invoice has been processed successfully.  \n                Please find the invoice details below:\n              </p>\n\n              <!-- Invoice Table -->\n              <table width=\"100%\" cellpadding=\"10\" cellspacing=\"0\" border=\"0\"\n                style=\"border-collapse:collapse; margin-top:20px;\">\n\n                <tr style=\"background:#f3f4f6;\">\n                  <td style=\"font-weight:bold;\">Invoice Name</td>\n                  <td>{{ $json.name }}</td>\n                </tr>\n\n                <tr>\n                  <td style=\"font-weight:bold;\">Company Name</td>\n                  <td>{{ $json.property_company_name }}</td>\n                </tr>\n\n                <tr style=\"background:#f3f4f6;\">\n                  <td style=\"font-weight:bold;\">Client Email</td>\n                  <td>{{ $json.property_email }}</td>\n                </tr>\n\n                <tr>\n                  <td style=\"font-weight:bold;\">Description</td>\n                  <td>{{ $json.property_description }}</td>\n                </tr>\n\n                <tr style=\"background:#f3f4f6;\">\n                  <td style=\"font-weight:bold;\">Invoice Amount</td>\n                  <td>{{ $json.property_amount }}</td>\n                </tr>\n\n                <tr>\n                  <td style=\"font-weight:bold;\">Additional Fee</td>\n                  <td>{{ $json.property_additional_fee }}</td>\n                </tr>\n\n                <tr style=\"background:#f3f4f6;\">\n                  <td style=\"font-weight:bold;\">Invoice File</td>\n                  <td>\n                    <a href=\"{{ $json.url }}\" \n                      style=\"color:#2563eb; text-decoration:none;\">\n                      View Invoice\n                    </a>\n                  </td>\n                </tr>\n\n              </table>\n\n              <!-- Footer -->\n              <p style=\"margin-top:40px; font-size:15px; line-height:1.7;\">\n                Thank you for your business.<br>\n                If you have any questions regarding this invoice, feel free to contact us.\n              </p>\n\n              <p style=\"margin-top:30px;\">\n                Best Regards,<br>\n                <strong>Invoice Automation System</strong>\n              </p>\n\n            </td>\n          </tr>\n\n          <!-- Footer -->\n          <tr>\n            <td align=\"center\" \n              style=\"background:#f9fafb; padding:20px; font-size:13px; color:#6b7280;\">\n              © 2026 Invoice Automation System. All rights reserved.\n            </td>\n          </tr>\n\n        </table>\n\n      </td>\n    </tr>\n  </table>\n\n</body>\n</html>\n```\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2544,
+        -176
+      ],
+      "id": "3df2b6e6-eeea-404b-915d-2dfb14e27e30",
+      "name": "Send a message",
+      "webhookId": "9aa2bb88-8d06-4c29-b865-b6c1f192ae92",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "XMgc85wPm0lAPU8z",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "days"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1904,
+        256
+      ],
+      "id": "da1bcb54-a644-4d97-911d-8d35971e7748",
+      "name": "Wait",
+      "webhookId": "23f7a332-f129-407d-af1f-35db41a63e6f"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Search Invoices": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Delete a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Create a database page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a database page": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "2f507a80-02f2-4ac0-b733-cc81c2d85f2b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ad220e37f6c815bb12e6a8ae83d302afacb4ca54d5b3ccd487b438e6f00d5d04"
+  },
+  "id": "QK8eRi3qUuc6fyOl",
+  "tags": []
+}
